@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TiDB Test Report &mdash; 20260228-211500</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #253348; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8;
+    --green: #22c55e; --red: #ef4444; --yellow: #eab308; --blue: #3b82f6;
+    --green-bg: rgba(34,197,94,.12); --red-bg: rgba(239,68,68,.12);
+    --yellow-bg: rgba(234,179,8,.12); --blue-bg: rgba(59,130,246,.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif;
+         background: var(--bg); color: var(--text); padding: 2rem; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+  .meta { color: var(--muted); font-size: .85rem; margin-bottom: 1.5rem; }
+  .meta strong { color: var(--text); }
+
+  /* ---- Summary Cards ---- */
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+              gap: .75rem; margin-bottom: .75rem; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+           border-radius: .75rem; padding: 1.1rem 1rem; text-align: center; }
+  .card .num { font-size: 2rem; font-weight: 700; }
+  .card .label { font-size: .7rem; color: var(--muted); text-transform: uppercase;
+                  letter-spacing: .05em; margin-top: .15rem; }
+  .card.green .num { color: var(--green); }
+  .card.red   .num { color: var(--red); }
+  .card.yellow .num { color: var(--yellow); }
+  .card.blue  .num { color: var(--blue); }
+
+  /* ---- Pass Rate Bar ---- */
+  .rate-bar-container { margin-bottom: 2rem; }
+  .rate-bar { height: 10px; border-radius: 999px; overflow: hidden; display: flex;
+               background: var(--surface); }
+  .rate-bar .seg-pass { background: var(--green); }
+  .rate-bar .seg-fail { background: var(--red); }
+  .rate-bar .seg-skip { background: var(--yellow); }
+  .rate-label { display: flex; justify-content: space-between; font-size: .75rem;
+                 color: var(--muted); margin-top: .35rem; }
+
+  /* ---- Quick Failures ---- */
+  .failures-nav { background: var(--surface); border: 1px solid var(--border);
+                   border-radius: .75rem; padding: 1rem 1.25rem; margin-bottom: 1.5rem; }
+  .failures-nav h2 { font-size: 1rem; margin-bottom: .6rem; color: var(--red); }
+  .failures-nav ul { list-style: none; }
+  .failures-nav li { padding: .3rem 0; font-size: .85rem; }
+  .failures-nav a { color: var(--blue); text-decoration: none; }
+  .failures-nav a:hover { text-decoration: underline; }
+  .failures-nav .f-sql { color: var(--muted); font-size: .78rem; margin-left: .4rem;
+                          font-family: 'Fira Code', monospace; }
+
+  /* ---- Filters ---- */
+  .filters { display: flex; gap: .5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .filter-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+                 padding: .4rem 1rem; border-radius: 999px; cursor: pointer; font-size: .8rem;
+                 transition: all .15s; }
+  .filter-btn:hover { background: var(--surface2); }
+  .filter-btn.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+  /* ---- Suite ---- */
+  .suite { background: var(--surface); border: 1px solid var(--border);
+            border-radius: .75rem; margin-bottom: 1.25rem; overflow: hidden; }
+  .suite-header { padding: .85rem 1.25rem; font-weight: 600; font-size: 1.05rem;
+                   border-bottom: 1px solid var(--border); cursor: pointer;
+                   display: flex; justify-content: space-between; align-items: center;
+                   user-select: none; }
+  .suite-header:hover { background: var(--surface2); }
+  .suite-header .toggle { font-size: .8rem; color: var(--muted); transition: transform .2s; }
+  .suite-header.collapsed .toggle { transform: rotate(-90deg); }
+  .suite-body { overflow: hidden; transition: max-height .3s ease; }
+  .suite-body.collapsed { max-height: 0 !important; }
+  .suite-stats { font-size: .75rem; color: var(--muted); display: flex; gap: .75rem; }
+  .suite-stats .ss-pass { color: var(--green); }
+  .suite-stats .ss-fail { color: var(--red); }
+
+  /* ---- Table ---- */
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: .6rem 1.25rem; font-size: .7rem;
+        text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border);
+        position: sticky; top: 0; background: var(--surface); }
+  td { padding: .65rem 1.25rem; border-bottom: 1px solid var(--border);
+        font-size: .85rem; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr[data-status="passed"] { }
+  tr[data-status="failed"], tr[data-status="error"] { background: var(--red-bg); }
+  tr[data-status="skipped"] { opacity: .6; }
+
+  /* ---- Badges ---- */
+  .badge { display: inline-block; padding: .15rem .6rem; border-radius: 999px;
+            font-size: .75rem; font-weight: 600; }
+  .badge.pass { background: var(--green-bg); color: var(--green); }
+  .badge.fail { background: var(--red-bg); color: var(--red); }
+  .badge.skip { background: var(--yellow-bg); color: var(--yellow); }
+
+  /* ---- SQL & Details ---- */
+  .sql { font-family: 'Fira Code', monospace; font-size: .78rem; color: var(--muted);
+           word-break: break-all; }
+  .error-box { background: var(--red-bg); border: 1px solid rgba(239,68,68,.2);
+                border-radius: .5rem; padding: .75rem; margin-top: .5rem; font-size: .8rem; }
+  .diff-block { font-family: 'Fira Code', monospace; font-size: .75rem; margin-top: .5rem;
+                 border-radius: .4rem; overflow: hidden; border: 1px solid var(--border); }
+  .diff-header { background: var(--surface2); padding: .35rem .75rem; font-size: .7rem;
+                  color: var(--muted); font-weight: 600; }
+  .diff-content { padding: .5rem .75rem; white-space: pre-wrap; word-break: break-all;
+                   max-height: 200px; overflow-y: auto; }
+  .diff-content.expected { background: rgba(34,197,94,.06); color: var(--green); }
+  .diff-content.actual   { background: rgba(239,68,68,.06); color: var(--red); }
+  .ai-box { background: var(--blue-bg); border: 1px solid rgba(59,130,246,.2);
+             border-radius: .5rem; padding: .75rem; margin-top: .5rem; font-size: .8rem; }
+  .ai-box strong { color: var(--blue); }
+  .confidence { opacity: .7; font-size: .75rem; }
+  .ai-label { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .65rem;
+               font-weight: 600; margin-left: .4rem; }
+  .ai-label.high { background: var(--green-bg); color: var(--green); }
+  .ai-label.medium { background: var(--yellow-bg); color: var(--yellow); }
+  .ai-label.low { background: var(--red-bg); color: var(--red); }
+
+  /* ---- Footer ---- */
+  .footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 2rem;
+             padding-top: 1.5rem; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>TiDB Test Report</h1>
+  <div class="meta">
+    Run <strong>20260228-211500</strong> &middot; TiDB <strong>v8.1.0</strong> &middot;
+    0.48s &middot; 2026-02-28 13:56:55 UTC
+    <br><span style="font-size:.78rem">os: Darwin 24.6.0 &middot; python: 3.14.2 &middot; framework: tidbtest-mvp</span>
+  </div>
+
+  <div class="summary">
+    <div class="card blue"><div class="num">13</div><div class="label">Total</div></div>
+    <div class="card green"><div class="num">10</div><div class="label">Passed</div></div>
+    <div class="card red"><div class="num">2</div><div class="label">Failed</div></div>
+    <div class="card yellow"><div class="num">1</div><div class="label">Skipped</div></div>
+  </div>
+
+  <div class="rate-bar-container">
+    <div class="rate-bar">
+      <div class="seg-pass" style="width:76.9%"></div>
+      <div class="seg-fail" style="width:15.4%"></div>
+      <div class="seg-skip" style="width:7.7%"></div>
+    </div>
+    <div class="rate-label">
+      <span>Pass rate: <strong style="color:var(--green)">76.92%</strong></span>
+      <span>1 flaky retried</span>
+    </div>
+  </div>
+
+  <div class="failures-nav"><h2>&#x274C; 2 Failure(s) &mdash; Quick Jump</h2><ul><li><a href="#basic_crud__update_score">basic_crud / update_score</a><span class="f-sql">UPDATE t_test SET score = 99.0 WHERE id = 1</span></li><li><a href="#cte_basic__cte_hierarchy">cte_basic / cte_hierarchy</a><span class="f-sql">SELECT * FROM employees_extended</span></li></ul></div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="passed">Passed</button>
+    <button class="filter-btn" data-filter="failed">Failed</button>
+    <button class="filter-btn" data-filter="skipped">Skipped</button>
+  </div>
+
+  <div class="suite"><div class="suite-header">basic_crud<div style="display:flex;align-items:center;gap:1rem;"><div class="suite-stats"><span class="ss-pass">5/6 passed</span><span class="ss-fail">1 failed</span></div><span class="toggle">&#x25BC;</span></div></div><div class="suite-body"><table><tr><th>Case</th><th>Status</th><th>Duration</th><th>SQL / Details</th></tr><tr data-status="passed" id="basic_crud__select_all"><td>select_all</td><td><span class="badge pass">&#x2705; passed</span></td><td>12.3ms</td><td><span class="sql">SELECT * FROM t_test ORDER BY id</span></td></tr>
+<tr data-status="passed" id="basic_crud__insert_row"><td>insert_row</td><td><span class="badge pass">&#x2705; passed</span></td><td>5.1ms</td><td><span class="sql">INSERT INTO t_test VALUES (4, &#x27;dave&#x27;, 88.5)</span></td></tr>
+<tr data-status="passed" id="basic_crud__insert_duplicate"><td>insert_duplicate</td><td><span class="badge pass">&#x2705; passed</span></td><td>8.1ms</td><td><span class="sql">INSERT INTO t_test VALUES (1, &#x27;charlie&#x27;, 60.0)</span></td></tr>
+<tr data-status="failed" id="basic_crud__update_score"><td>update_score</td><td><span class="badge fail">&#x274C; failed</span> <span style="color:var(--yellow)">(+2 retries)</span></td><td>15.7ms</td><td><span class="sql">UPDATE t_test SET score = 99.0 WHERE id = 1</span><div class="error-box"><strong>Error:</strong> Affected rows: expected 1, got 0</div><div class="diff-block"><div class="diff-header">&#x2212; Expected</div><div class="diff-content expected">1</div><div class="diff-header">&#x2b; Actual</div><div class="diff-content actual">0</div></div><div class="ai-box"><strong>AI Analysis</strong><span class="ai-label high">HIGH</span><br><strong>Root Cause:</strong> Table t_test has no row with id=1 after previous INSERT failed due to duplicate key. The test case dependency chain is broken.<br><strong>Category:</strong> test_issue<br><strong>Suggestion:</strong> Ensure setup INSERTs succeed before running UPDATE tests, or add an explicit INSERT in this case&#x27;s setup.<br><strong>Confidence:</strong> 0.85</div></td></tr>
+<tr data-status="passed" id="basic_crud__aggregate_avg"><td>aggregate_avg</td><td><span class="badge pass">&#x2705; passed</span></td><td>18.2ms</td><td><span class="sql">SELECT AVG(score) FROM t_test WHERE id IN (1, 2)</span></td></tr>
+<tr data-status="passed" id="basic_crud__delete_cleanup"><td>delete_cleanup</td><td><span class="badge pass">&#x2705; passed</span></td><td>3.4ms</td><td><span class="sql">DELETE FROM t_test WHERE id &gt; 3</span></td></tr></table></div></div>
+<div class="suite"><div class="suite-header">cte_basic<div style="display:flex;align-items:center;gap:1rem;"><div class="suite-stats"><span class="ss-pass">2/4 passed</span><span class="ss-fail">1 failed</span></div><span class="toggle">&#x25BC;</span></div></div><div class="suite-body"><table><tr><th>Case</th><th>Status</th><th>Duration</th><th>SQL / Details</th></tr><tr data-status="passed" id="cte_basic__simple_cte"><td>simple_cte</td><td><span class="badge pass">&#x2705; passed</span></td><td>45.1ms</td><td><span class="sql">WITH RECURSIVE cte_0 (col_10, col_11) AS (SELECT 1, 2 UNION ALL SELECT col_10+1, col_11+2 FROM cte_0 WHERE col_10 &lt; 5) SELECT * FROM cte_0</span></td></tr>
+<tr data-status="passed" id="cte_basic__cte_error_scope"><td>cte_error_scope</td><td><span class="badge pass">&#x2705; passed</span></td><td>3.2ms</td><td><span class="sql">WITH cte AS (SELECT 1) SELECT * FROM cte2</span></td></tr>
+<tr data-status="skipped" id="cte_basic__cte_v9_feature"><td>cte_v9_feature</td><td><span class="badge skip">&#x23ED; skipped</span></td><td>0.0ms</td><td><span class="sql">WITH cte1 AS MATERIALIZED (SELECT * FROM t) SELECT * FROM cte1</span></td></tr>
+<tr data-status="failed" id="cte_basic__cte_hierarchy"><td>cte_hierarchy</td><td><span class="badge fail">&#x274C; failed</span></td><td>67.8ms</td><td><span class="sql">SELECT * FROM employees_extended</span><div class="error-box"><strong>Error:</strong> Result text mismatch</div><div class="diff-block"><div class="diff-header">&#x2212; Expected</div><div class="diff-content expected">ID	NAME	MANAGER_ID	PATH
+72	Pierre	29	72</div><div class="diff-header">&#x2b; Actual</div><div class="diff-content actual">ID	NAME	MANAGER_ID	PATH
+72	Pierre	29	72
+29	Pedro	198	72,29</div></div><div class="ai-box"><strong>AI Analysis</strong><span class="ai-label medium">MED</span><br><strong>Root Cause:</strong> Recursive CTE returns full hierarchy but test expects only first row. Likely a version regression in recursive termination.<br><strong>Category:</strong> version_regression<br><strong>Suggestion:</strong> Check if v8.1.0 changed recursive CTE max depth behavior. Compare with v8.0.x.<br><strong>Confidence:</strong> 0.52<br><strong>Related:</strong> <a href="https://github.com/pingcap/tidb/issues/25674" style="color:var(--blue)">25674</a></div></td></tr></table></div></div>
+<div class="suite"><div class="suite-header">expression_issues<div style="display:flex;align-items:center;gap:1rem;"><div class="suite-stats"><span class="ss-pass">3/3 passed</span><span class="ss-fail">0 failed</span></div><span class="toggle">&#x25BC;</span></div></div><div class="suite-body"><table><tr><th>Case</th><th>Status</th><th>Duration</th><th>SQL / Details</th></tr><tr data-status="passed" id="expression_issues__issue_11304"><td>issue_11304</td><td><span class="badge pass">&#x2705; passed</span></td><td>22.1ms</td><td><span class="sql">SELECT DATE_FORMAT(&#x27;2017-01-01&#x27;, &#x27;%Y&#x27;)</span></td></tr>
+<tr data-status="passed" id="expression_issues__issue_12209"><td>issue_12209</td><td><span class="badge pass">&#x2705; passed</span></td><td>11.3ms</td><td><span class="sql">SELECT CAST(1 AS SIGNED) - CAST(-1 AS SIGNED)</span></td></tr>
+<tr data-status="passed" id="expression_issues__issue_nullif"><td>issue_nullif</td><td><span class="badge pass">&#x2705; passed</span></td><td>5.8ms</td><td><span class="sql">SELECT NULLIF(1, 1)</span></td></tr></table></div></div>
+
+  <div class="footer">Generated by <strong>tidbtest-mvp</strong> &middot; Schema v2.0</div>
+</div>
+
+<script>
+(function() {
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      document.querySelectorAll('tr[data-status]').forEach(row => {
+        row.style.display = (f === 'all' || row.dataset.status === f) ? '' : 'none';
+      });
+    });
+  });
+  // Collapsible suites
+  document.querySelectorAll('.suite-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.classList.toggle('collapsed');
+      header.nextElementSibling.classList.toggle('collapsed');
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+{
+  "schema_version": "2.0",
+  "run_id": "20260228-211500",
+  "timestamp": "2026-02-28T13:56:55.777554+00:00",
+  "tidb_version": "v8.1.0",
+  "environment": {
+    "os": "Darwin 24.6.0",
+    "python": "3.14.2",
+    "framework": "tidbtest-mvp"
+  },
+  "summary": {
+    "total": 13,
+    "passed": 10,
+    "failed": 2,
+    "skipped": 1,
+    "duration_sec": 0.476,
+    "flaky_retried": 1,
+    "pass_rate": 76.92
+  },
+  "failure_summary": [
+    {
+      "suite": "basic_crud",
+      "case_id": "update_score",
+      "sql": "UPDATE t_test SET score = 99.0 WHERE id = 1",
+      "status": "failed",
+      "retries": 2,
+      "error": {
+        "expected": "1",
+        "actual": "0",
+        "message": "Affected rows: expected 1, got 0"
+      },
+      "ai_analysis": {
+        "root_cause": "Table t_test has no row with id=1 after previous INSERT failed due to duplicate key. The test case dependency chain is broken.",
+        "category": "test_issue",
+        "confidence": 0.85,
+        "suggestion": "Ensure setup INSERTs succeed before running UPDATE tests, or add an explicit INSERT in this case's setup.",
+        "related_issues": []
+      }
+    },
+    {
+      "suite": "cte_basic",
+      "case_id": "cte_hierarchy",
+      "sql": "SELECT * FROM employees_extended",
+      "status": "failed",
+      "retries": 0,
+      "error": {
+        "expected": "ID\tNAME\tMANAGER_ID\tPATH\n72\tPierre\t29\t72",
+        "actual": "ID\tNAME\tMANAGER_ID\tPATH\n72\tPierre\t29\t72\n29\tPedro\t198\t72,29",
+        "message": "Result text mismatch"
+      },
+      "ai_analysis": {
+        "root_cause": "Recursive CTE returns full hierarchy but test expects only first row. Likely a version regression in recursive termination.",
+        "category": "version_regression",
+        "confidence": 0.52,
+        "suggestion": "Check if v8.1.0 changed recursive CTE max depth behavior. Compare with v8.0.x.",
+        "related_issues": [
+          "https://github.com/pingcap/tidb/issues/25674"
+        ]
+      }
+    }
+  ],
+  "suites": [
+    {
+      "name": "basic_crud",
+      "duration_ms": 156.3,
+      "cases": [
+        {
+          "id": "select_all",
+          "status": "passed",
+          "duration_ms": 12.3,
+          "sql": "SELECT * FROM t_test ORDER BY id",
+          "retries": 0
+        },
+        {
+          "id": "insert_row",
+          "status": "passed",
+          "duration_ms": 5.1,
+          "sql": "INSERT INTO t_test VALUES (4, 'dave', 88.5)",
+          "retries": 0
+        },
+        {
+          "id": "insert_duplicate",
+          "status": "passed",
+          "duration_ms": 8.1,
+          "sql": "INSERT INTO t_test VALUES (1, 'charlie', 60.0)",
+          "retries": 0
+        },
+        {
+          "id": "update_score",
+          "status": "failed",
+          "duration_ms": 15.7,
+          "sql": "UPDATE t_test SET score = 99.0 WHERE id = 1",
+          "retries": 2,
+          "error": {
+            "expected": "1",
+            "actual": "0",
+            "message": "Affected rows: expected 1, got 0"
+          },
+          "ai_analysis": {
+            "root_cause": "Table t_test has no row with id=1 after previous INSERT failed due to duplicate key. The test case dependency chain is broken.",
+            "category": "test_issue",
+            "confidence": 0.85,
+            "suggestion": "Ensure setup INSERTs succeed before running UPDATE tests, or add an explicit INSERT in this case's setup.",
+            "related_issues": []
+          }
+        },
+        {
+          "id": "aggregate_avg",
+          "status": "passed",
+          "duration_ms": 18.2,
+          "sql": "SELECT AVG(score) FROM t_test WHERE id IN (1, 2)",
+          "retries": 0
+        },
+        {
+          "id": "delete_cleanup",
+          "status": "passed",
+          "duration_ms": 3.4,
+          "sql": "DELETE FROM t_test WHERE id > 3",
+          "retries": 0
+        }
+      ]
+    },
+    {
+      "name": "cte_basic",
+      "duration_ms": 230.5,
+      "cases": [
+        {
+          "id": "simple_cte",
+          "status": "passed",
+          "duration_ms": 45.1,
+          "sql": "WITH RECURSIVE cte_0 (col_10, col_11) AS (SELECT 1, 2 UNION ALL SELECT col_10+1, col_11+2 FROM cte_0 WHERE col_10 < 5) SELECT * FROM cte_0",
+          "retries": 0
+        },
+        {
+          "id": "cte_error_scope",
+          "status": "passed",
+          "duration_ms": 3.2,
+          "sql": "WITH cte AS (SELECT 1) SELECT * FROM cte2",
+          "retries": 0
+        },
+        {
+          "id": "cte_v9_feature",
+          "status": "skipped",
+          "duration_ms": 0,
+          "sql": "WITH cte1 AS MATERIALIZED (SELECT * FROM t) SELECT * FROM cte1",
+          "retries": 0
+        },
+        {
+          "id": "cte_hierarchy",
+          "status": "failed",
+          "duration_ms": 67.8,
+          "sql": "SELECT * FROM employees_extended",
+          "retries": 0,
+          "error": {
+            "expected": "ID\tNAME\tMANAGER_ID\tPATH\n72\tPierre\t29\t72",
+            "actual": "ID\tNAME\tMANAGER_ID\tPATH\n72\tPierre\t29\t72\n29\tPedro\t198\t72,29",
+            "message": "Result text mismatch"
+          },
+          "ai_analysis": {
+            "root_cause": "Recursive CTE returns full hierarchy but test expects only first row. Likely a version regression in recursive termination.",
+            "category": "version_regression",
+            "confidence": 0.52,
+            "suggestion": "Check if v8.1.0 changed recursive CTE max depth behavior. Compare with v8.0.x.",
+            "related_issues": [
+              "https://github.com/pingcap/tidb/issues/25674"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "expression_issues",
+      "duration_ms": 89.2,
+      "cases": [
+        {
+          "id": "issue_11304",
+          "status": "passed",
+          "duration_ms": 22.1,
+          "sql": "SELECT DATE_FORMAT('2017-01-01', '%Y')",
+          "retries": 0
+        },
+        {
+          "id": "issue_12209",
+          "status": "passed",
+          "duration_ms": 11.3,
+          "sql": "SELECT CAST(1 AS SIGNED) - CAST(-1 AS SIGNED)",
+          "retries": 0
+        },
+        {
+          "id": "issue_nullif",
+          "status": "passed",
+          "duration_ms": 5.8,
+          "sql": "SELECT NULLIF(1, 1)",
+          "retries": 0
+        }
+      ]
+    }
+  ]
+}

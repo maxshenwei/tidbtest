@@ -1,0 +1,21 @@
+database:
+  host: "127.0.0.1"
+  port: 4000
+  user: "root"
+  password: ""
+
+ai:
+  provider: "openai"
+  api_key: "${OPENAI_API_KEY}"    # reads from env var
+  model: "gpt-5.2"
+  temperature: 0.3
+  max_retries: 3                  # quality gate retry rounds
+
+runner:
+  test_dir: "tests/cases"
+  report_dir: "reports"
+  retry:
+    max_retries: 2
+    backoff_base: 1.0
+  isolation: "database"           # database-level isolation
+  ai_analyze_on_failure: false    # auto-trigger AI analysis on failure

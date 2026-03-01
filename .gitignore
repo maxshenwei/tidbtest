@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated reports (keep directory, ignore contents)
+reports/*.json
+reports/*.html
+
+# AI generated test cases (keep directory structure)
+tests/cases/ai_generated/generated.yaml
+
+# Sample/demo reports
+reports/sample_*.json
+reports/sample_*.html
+
+# Environment
+.env
+*.egg-info/
+dist/
+build/
+.venv/

@@ -1,0 +1,49 @@
+suite: transaction_basic
+description: "基础事务行为测试"
+tags: [transaction]
+
+setup:
+  - "CREATE TABLE t_txn (id INT PRIMARY KEY, val INT NOT NULL DEFAULT 0)"
+  - "INSERT INTO t_txn VALUES (1, 100), (2, 200)"
+
+cases:
+  - id: autocommit_insert
+    description: "autocommit 模式下插入立即可见"
+    sql: "INSERT INTO t_txn VALUES (10, 1000)"
+    expect:
+      type: affected_rows
+      value: 1
+
+  - id: verify_autocommit
+    description: "验证 autocommit 写入"
+    sql: "SELECT val FROM t_txn WHERE id = 10"
+    expect:
+      type: rows
+      value:
+        - [1000]
+
+  - id: update_non_existent
+    description: "更新不存在的行应影响 0 行"
+    sql: "UPDATE t_txn SET val = 999 WHERE id = 9999"
+    expect:
+      type: affected_rows
+      value: 0
+
+  - id: null_violation
+    description: "NOT NULL 约束违反"
+    sql: "INSERT INTO t_txn (id, val) VALUES (20, NULL)"
+    expect:
+      type: error
+      value:
+        code: 1048
+
+  - id: select_for_update
+    description: "SELECT FOR UPDATE 基本语法"
+    sql: "SELECT val FROM t_txn WHERE id = 1 FOR UPDATE"
+    expect:
+      type: rows
+      value:
+        - [100]
+
+teardown:
+  - "DROP TABLE IF EXISTS t_txn"

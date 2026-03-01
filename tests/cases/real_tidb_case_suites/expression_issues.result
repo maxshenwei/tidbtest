@@ -1,0 +1,328 @@
+drop table if exists t1, t2;
+create table t1 (b enum('a', 'b'));
+insert into t1 values ('a');
+create table t2 (b enum('b','a') not null, unique(b));
+insert into t2 values ('a');
+select /*+ inl_join(t2)*/ * from t1, t2 where t1.b=t2.b;
+b	b
+a	a
+drop table if exists t1, t2;
+create table t1 (b set('a', 'b'));
+insert into t1 values ('a');
+create table t2 (b set('b','a') not null, unique(b));
+insert into t2 values ('a');
+select /*+ inl_join(t2)*/ * from t1, t2 where t1.b=t2.b;
+b	b
+a	a
+drop table if exists t1, t2;
+create table t1 (b enum('a', 'b'));
+insert into t1 values ('a');
+create table t2 (b set('b','a') not null, unique(b));
+insert into t2 values ('a');
+select /*+ inl_join(t2)*/ * from t1, t2 where t1.b=t2.b;
+b	b
+a	a
+drop table if exists t1, t2;
+insert into t1 values ('a');
+create table t2 (b enum('b','a') not null, unique(b));
+insert into t2 values ('a');
+select /*+ inl_join(t2)*/ * from t1, t2 where t1.b=t2.b;
+b	b
+a	a
+drop table if exists t1, t2;
+insert into t1 values ('a');
+create table t2 (b set('b','a') not null, unique(b));
+insert into t2 values ('a');
+select /*+ inl_join(t2)*/ * from t1, t2 where t1.b=t2.b;
+b	b
+a	a
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+CREATE TABLE t (b BIT(8));
+INSERT INTO t SET b = b'11111111';
+INSERT INTO t SET b = b'1010';
+INSERT INTO t SET b = b'0101';
+SELECT b+0, BIN(b), OCT(b), HEX(b) FROM t;
+b+0	BIN(b)	OCT(b)	HEX(b)
+255	11111111	377	FF
+10	1010	12	A
+5	101	5	5
+drop table if exists t;
+create table t(a char(20));
+select convert(a using a) from t;
+Error 1115 (42000): Unknown character set: 'a'
+drop table if exists t;
+create table t (id int NOT NULL DEFAULT 8);
+SET sql_mode = '';
+insert into t values (1), (NULL), (2);
+Level	Code	Message
+Warning	1048	Column 'id' cannot be null
+select * from t;
+id
+1
+0
+2
+set @@sql_mode=default;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+set @@sql_mode=default;
+drop table if exists t;
+set @@sql_mode=default;
+drop table if exists t1, t2;
+drop table if exists t;
+drop table if exists t1, t2;
+drop table if exists t;
+create table t(a int);
+insert into t values(1);
+select * from t where a < -184467440737095516167.1;
+a
+select * from t where a > -184467440737095516167.1;
+a
+1
+select * from t where a < 184467440737095516167.1;
+a
+1
+select * from t where a > 184467440737095516167.1;
+a
+drop table if exists t;
+create table t(b bit(1));
+insert into t values(b'1');
+select count(*) from t where b = 1;
+count(*)
+1
+select count(*) from t where b = '1';
+count(*)
+1
+select count(*) from t where b = b'1';
+count(*)
+1
+drop table if exists t;
+create table t(b bit(63));
+insert into t values(b'111111111111111111111111111111111111111111111111111111111111111');
+select count(*) from t where b = 9223372036854775807;
+count(*)
+1
+select count(*) from t where b = '9223372036854775807';
+count(*)
+1
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+create table t (d decimal(19, 0), i bigint(11));
+insert into t values (123456789012, 123456789012);
+select * from t where d = i;
+d	i
+123456789012	123456789012
+DROP TABLE IF EXISTS t;
+CREATE TABLE t (v VARCHAR(100));
+INSERT INTO t VALUES ('3289742893213123732904809');
+SELECT * FROM t WHERE v;
+v
+3289742893213123732904809
+drop table if exists t;
+create table t(a int);
+insert into t values(1);
+drop table if exists testjson;
+CREATE TABLE testjson (j json DEFAULT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+INSERT INTO testjson SET j='{"test":3}';
+INSERT INTO testjson SET j='{"test":0}';
+insert into testjson set j='{"test":"0"}';
+insert into testjson set j='{"test":0.0}';
+INSERT INTO testjson SET j='{"test":"aaabbb"}';
+INSERT INTO testjson SET j='{"test":3.1415}';
+INSERT INTO testjson SET j='{"test":[]}';
+INSERT INTO testjson SET j='{"test":[1,2]}';
+INSERT INTO testjson SET j='{"test":["b","c"]}';
+INSERT INTO testjson SET j='{"test":{"ke":"val"}}';
+insert into testjson set j='{"test":"2015-07-27 09:43:47"}';
+insert into testjson set j='{"test":"0000-00-00 00:00:00"}';
+insert into testjson set j='{"test":"0778"}';
+insert into testjson set j='{"test":"0000"}';
+insert into testjson set j='{"test":null}';
+insert into testjson set j=null;
+insert into testjson set j='{"test":[null]}';
+insert into testjson set j='{"test":true}';
+insert into testjson set j='{"test":false}';
+insert into testjson set j='""';
+insert into testjson set j='null';
+insert into testjson set j='0';
+insert into testjson set j='"0"';
+SELECT * FROM testjson WHERE JSON_EXTRACT(j,'$.test');
+j
+{"test": 3}
+{"test": "0"}
+{"test": "aaabbb"}
+{"test": 3.1415}
+{"test": []}
+{"test": [1, 2]}
+{"test": ["b", "c"]}
+{"test": {"ke": "val"}}
+{"test": "2015-07-27 09:43:47"}
+{"test": "0000-00-00 00:00:00"}
+{"test": "0778"}
+{"test": "0000"}
+{"test": null}
+{"test": [null]}
+{"test": true}
+{"test": false}
+select * from testjson where j;
+j
+{"test": 3}
+{"test": 0}
+{"test": "0"}
+{"test": 0.0}
+{"test": "aaabbb"}
+{"test": 3.1415}
+{"test": []}
+{"test": [1, 2]}
+{"test": ["b", "c"]}
+{"test": {"ke": "val"}}
+{"test": "2015-07-27 09:43:47"}
+{"test": "0000-00-00 00:00:00"}
+{"test": "0778"}
+{"test": "0000"}
+{"test": null}
+{"test": [null]}
+{"test": true}
+{"test": false}
+""
+null
+"0"
+SELECT * FROM testjson WHERE JSON_EXTRACT(j,'$.test');
+j
+{"test": 3}
+{"test": "0"}
+{"test": "aaabbb"}
+{"test": 3.1415}
+{"test": []}
+{"test": [1, 2]}
+{"test": ["b", "c"]}
+{"test": {"ke": "val"}}
+{"test": "2015-07-27 09:43:47"}
+{"test": "0000-00-00 00:00:00"}
+{"test": "0778"}
+{"test": "0000"}
+{"test": null}
+{"test": [null]}
+{"test": true}
+{"test": false}
+select * from testjson where j;
+j
+{"test": 3}
+{"test": 0}
+{"test": "0"}
+{"test": 0.0}
+{"test": "aaabbb"}
+{"test": 3.1415}
+{"test": []}
+{"test": [1, 2]}
+{"test": ["b", "c"]}
+{"test": {"ke": "val"}}
+{"test": "2015-07-27 09:43:47"}
+{"test": "0000-00-00 00:00:00"}
+{"test": "0778"}
+{"test": "0000"}
+{"test": null}
+{"test": [null]}
+{"test": true}
+{"test": false}
+""
+null
+"0"
+drop table if exists t;
+create table t(a int);
+insert into t values(2);
+select * from t where (not not a) = a;
+a
+select * from t where (not not not not a) = a;
+a
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t1, t2;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+select * from t;
+a
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+create table t(a int);
+select * from t;
+a
+1
+NULL
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+select * from t;
+a	b	c	d
+a	0	a	0
+	1		1
+c	2	a,	0,1
+			
+set @@sql_mode=default;
+drop table if exists t;
+drop table if exists t1, t2;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+create table t(a int);
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+select * from t;
+a
+00:00:01.1
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+set @@sql_mode=default;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+set @@sql_mode=default;
+drop table if exists t;
+drop table if exists t;
+create table t(a int);
+DROP TABLE IF EXISTS t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+create table t(a int);
+drop table if exists t;
+select * from t;
+col1
+0
+drop table if exists t;
+create table t(a int);

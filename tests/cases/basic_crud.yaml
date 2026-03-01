@@ -1,0 +1,82 @@
+suite: basic_crud
+description: "基础 CRUD 操作测试"
+tags: [crud, smoke]
+
+setup:
+  - "CREATE TABLE IF NOT EXISTS t_test (id INT PRIMARY KEY, name VARCHAR(64), score DECIMAL(10,2))"
+  - "INSERT INTO t_test VALUES (1, 'alice', 95.5), (2, 'bob', 87.0)"
+
+cases:
+  - id: select_all
+    description: "全表查询"
+    sql: "SELECT * FROM t_test ORDER BY id"
+    expect:
+      type: rows
+      value:
+        - [1, "alice", "95.50"]
+        - [2, "bob", "87.00"]
+
+  - id: select_where
+    description: "条件查询"
+    sql: "SELECT name, score FROM t_test WHERE id = 1"
+    expect:
+      type: rows
+      value:
+        - ["alice", "95.50"]
+
+  - id: select_count
+    description: "计数查询"
+    sql: "SELECT * FROM t_test"
+    expect:
+      type: count
+      value: 2
+
+  - id: insert_new
+    description: "插入新行"
+    sql: "INSERT INTO t_test VALUES (3, 'charlie', 78.5)"
+    expect:
+      type: affected_rows
+      value: 1
+
+  - id: insert_duplicate
+    description: "主键冲突应报错"
+    sql: "INSERT INTO t_test VALUES (1, 'duplicate', 60.0)"
+    expect:
+      type: error
+      value:
+        code: 1062
+        message_contains: "Duplicate"
+
+  - id: update_score
+    description: "更新操作"
+    sql: "UPDATE t_test SET score = 99.0 WHERE id = 1"
+    expect:
+      type: affected_rows
+      value: 1
+
+  - id: verify_update
+    description: "验证更新结果"
+    sql: "SELECT score FROM t_test WHERE id = 1"
+    expect:
+      type: rows
+      value:
+        - ["99.00"]
+
+  - id: delete_row
+    description: "删除操作"
+    sql: "DELETE FROM t_test WHERE id = 3"
+    expect:
+      type: affected_rows
+      value: 1
+
+  - id: aggregate_avg
+    description: "聚合查询 - 平均分"
+    sql: "SELECT AVG(score) FROM t_test WHERE id IN (1, 2)"
+    expect:
+      type: rows
+      value:
+        - ["93.000000"]
+      tolerance: 0.01
+
+teardown:
+  - "DROP TABLE IF EXISTS t_test"

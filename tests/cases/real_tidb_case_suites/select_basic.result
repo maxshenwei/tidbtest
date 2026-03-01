@@ -1,0 +1,160 @@
+DROP TABLE IF EXISTS t;
+INSERT INTO t VALUES (1,2,3);
+SELECT * from t;
+c1	c2	c3
+1	2	3
+SELECT c1, c2, c3 from t;
+c1	c2	c3
+1	2	3
+SELECT c1, c1 from t;
+c1	c1
+1	1
+SELECT c1 as a, c2 as a from t;
+a	a
+1	2
+SELECT 1;
+1
+1
+SELECT 1, 1;
+1	1
+1	1
+SET @@autocommit = 1;
+SELECT @@autocommit;
+@@autocommit
+1
+SET @a = 10;
+SET @b = 11;
+SELECT @a, @@autocommit;
+@a	@@autocommit
+10	1
+SELECT @a, @b;
+@a	@b
+10	11
+SELECT 1, @a;
+1	@a
+1	10
+SET @b = "123";
+SELECT @b + "123";
+@b + "123"
+246
+SELECT 1 + 1;
+1 + 1
+2
+SELECT 1 a, 1 as a, 1 + 1 a;
+a	a	a
+1	1	2
+SELECT c1 a, c1 as a from t;
+a	a
+1	1
+SELECT * from t LIMIT 0,1;
+c1	c2	c3
+1	2	3
+SELECT * from t LIMIT 1;
+c1	c2	c3
+1	2	3
+SELECT * from t LIMIT 1,1;
+c1	c2	c3
+SELECT * from t LIMIT 1 OFFSET 0;
+c1	c2	c3
+1	2	3
+DROP TABLE IF EXISTS t2;
+INSERT INTO t2 VALUES (1,2);
+SELECT * from t a;
+c1	c2	c3
+1	2	3
+SELECT * from t a, t2 b;
+c1	c2	c3	c1	c2
+1	2	3	1	2
+SELECT * from t as a, t2 as b;
+c1	c2	c3	c1	c2
+1	2	3	1	2
+SELECT * from t a left join t2 b on a.c1 = b.c1;
+c1	c2	c3	c1	c2
+1	2	3	1	2
+SELECT * from (SELECT 1, 1) as a;
+Error 1060 (42S21): Duplicate column name '1'
+SELECT * from (SELECT * FROM t, t2) as a;
+Error 1060 (42S21): Duplicate column name 'c1'
+DROP TABLE IF EXISTS t;
+CREATE TABLE t (c1 INT, c2 INT);
+INSERT INTO t VALUES (1, 2), (1, 1), (1, 3);
+SELECT c1=c2 FROM t;
+c1=c2
+0
+1
+0
+SELECT 1=1;
+1=1
+1
+SELECT t.c1 + t.c2 from t limit 1;
+t.c1 + t.c2
+3
+SELECT t.c1 from t limit 1;
+c1
+1
+SELECT c1 + 10 from t limit 1;
+c1 + 10
+11
+SELECT all c1, c2 from t limit 1;
+c1	c2
+1	2
+SELECT distinct c1, c2 from t order by c1, c2 limit 1;
+c1	c2
+1	1
+SELECT c2 from t where not (c2 > 2);
+c2
+2
+1
+select + - 1, --1, +-+-+1, + "123";
++ - 1	--1	+-+-+1	123
+-1	1	1	123
+select --------------------1, ++++++++++++++++++++1;
+--------------------1	1
+1	1
+select * from t where null;
+c1	c2
+select * from t where 1;
+c1	c2
+1	2
+1	1
+1	3
+select * from t where 0;
+c1	c2
+select * from t where null is not null;
+c1	c2
+select * from t where !1;
+c1	c2
+select * from t as a, t2 as b;
+c1	c2	c1	c2
+1	2	1	2
+1	1	1	2
+1	3	1	2
+select * from t as a cross join t2 as b;
+c1	c2	c1	c2
+1	2	1	2
+1	1	1	2
+1	3	1	2
+select * from t as a join t2 as b;
+c1	c2	c1	c2
+1	2	1	2
+1	1	1	2
+1	3	1	2
+select * from t as a join t2 as b on a.c2 = b.c2;
+c1	c2	c1	c2
+1	2	1	2
+select * from (t);
+c1	c2
+1	2
+1	1
+1	3
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t;
+drop table if exists t2;
+SELECT a, b, c, d FROM precise_types;
+a	b	c	d
+18446744073709551614	-9223372036854775806	99999999999999999999.0	1.8446744073709552e19
+drop table if exists t2;

@@ -1,0 +1,95 @@
+# Real TiDB test cases from: pingcap/tidb/tests/integrationtest/t/cte.test
+# Curated subset covering basic CTE and recursive CTE functionality.
+
+# case 1 — Basic recursive CTE on empty table
+drop table if exists tbl_0;
+create table tbl_0(a int);
+with recursive cte_0 (col_10,col_11,col_12) AS ( select 1, 2,3 from tbl_0 UNION select col_10 + 1,col_11 + 1,col_12 + 1 from cte_0 where col_10 < 10 ) select * from cte_0;
+
+# case 6 — Non-recursive CTE with multiple references
+with recursive cte2 as (select 1 as col_1, 2 as col_2) select c1.col_1, c2.col_2 from cte2 as c1, cte2 as c2 where c2.col_2 = 1;
+
+# case 7 — CTE with two definitions
+with recursive cte (c1) as (select 1), cte1 (c2) as (select 1 union select c1 + 1 from cte, cte1) select * from cte, cte1;
+
+# case 8 — CTE with same name in nested scope should fail
+--error 1054
+with recursive tbl_0 (col_943,col_944,col_945,col_946,col_947) AS ( with recursive tbl_0 (col_948,col_949,col_950,col_951,col_952) AS ( select 1, 2,3,4,5 UNION ALL select col_948 + 1,col_949 + 1,col_950 + 1,col_951 + 1,col_952 + 1 from tbl_0 where col_948 < 5 ) select col_948,col_949,col_951,col_950,col_952 from tbl_0 UNION ALL select col_943 + 1,col_944 + 1,col_945 + 1,col_946 + 1,col_947 + 1 from tbl_0 where col_943 < 5 ) select * from tbl_0;
+
+# case 9 — Type coercion in recursive CTE
+with recursive cte1 (c1, c2) as (select 1, '1' union select concat(c1, 1), c2 + 1 from cte1 where c1 < 100) select * from cte1;
+
+# case 11 — Non-recursive UNION ALL
+with recursive qn as (select 1 from dual union all select 1 from dual) select * from qn;
+
+# case 12 — GROUP BY in seed
+with recursive qn as (select 1 as a from dual group by a union all select a+1 from qn where a<3) select * from qn;
+
+# case 13 — ORDER BY in seed subquery
+with recursive qn as ((select 1 as a from dual order by a) union all select a+1 from qn where a<3) select * from qn;
+
+# case 14 — Employee hierarchy (classic recursive CTE use case)
+drop table if exists employees;
+CREATE TABLE employees (
+ID INT PRIMARY KEY,
+NAME VARCHAR(100),
+MANAGER_ID INT,
+INDEX (MANAGER_ID),
+FOREIGN KEY (MANAGER_ID) REFERENCES employees(ID)
+);
+INSERT INTO employees VALUES
+(333, "Yasmina", NULL),
+(198, "John", 333),
+(692, "Tarek", 333),
+(29, "Pedro", 198),
+(4610, "Sarah", 29),
+(72, "Pierre", 29),
+(123, "Adil", 692);
+WITH RECURSIVE employees_extended AS (SELECT ID, NAME, MANAGER_ID, CAST(ID AS CHAR(200)) AS PATH FROM employees WHERE NAME='Pierre' UNION ALL SELECT S.ID, S.NAME, S.MANAGER_ID, CONCAT(M.PATH, ",", S.ID) FROM employees_extended M JOIN employees S ON M.MANAGER_ID=S.ID) SELECT * FROM employees_extended;
+
+# case 15 — CTE used with WHERE filter
+with recursive cte (c1) as (select 1), cte1 (c2) as (select 1 union select c1 + 1 from cte where c1 < 10) select * from cte where c1 < 5;
+
+# case 18 — Simple CTE with two aliases
+with cte1 (c1) as (select 1) select * from cte1 as b, cte1 as a;
+
+# case 19 — Column count mismatch in recursive CTE should fail
+--error 1222
+WITH RECURSIVE qn AS ( select 1 union all select 3, 0 from qn ) select * from qn;
+
+# case 20 — LIMIT in recursive member not supported
+--error 1235
+with recursive cte1 as (select 1 union all (select 1 from cte1 limit 10)) select * from cte1;
+
+# case 22 — NULL handling in recursive CTE
+with recursive qn as (select 123 as a union all select null from qn where a is not null) select * from qn;
+
+# case 23 — Column count mismatch in CTE definition
+--error 1353
+with recursive q (b) as (select 1, 1 union all select 1, 1 from q) select b from q;
+
+# case 24 — CTE in EXISTS subquery
+drop table if exists t1;
+create table t1(a int);
+insert into t1 values(1);
+insert into t1 values(2);
+SELECT *
+FROM
+t1 dt
+WHERE
+EXISTS(
+ WITH RECURSIVE qn AS (SELECT a*0 AS b UNION ALL SELECT b+1 FROM qn WHERE b=0)
+ SELECT * FROM qn WHERE b=a
+ );
+
+# case 25 — Scalar subquery with CTE
+drop table if exists t1;
+create table t1 (a int);
+insert into t1 values (1);
+SELECT (WITH qn AS (SELECT 10*a as a FROM t1),
+ qn2 AS (SELECT 3*a AS b FROM qn) SELECT * from qn2 LIMIT 1)
+FROM t1;
+
+# case 26 — CTE with string literal
+select (with qn as (select "with") select * from qn) as scal_subq
+from dual;

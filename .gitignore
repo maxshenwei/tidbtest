@@ -12,6 +12,9 @@ tests/cases/ai_generated/generated.yaml
 # Sample/demo reports
 reports/sample_*.json
 reports/sample_*.html
+# Exception: track sample_v2 for sharing
+!reports/sample_v2.json
+!reports/sample_v2.html
 
 # Environment
 .env
